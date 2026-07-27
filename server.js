@@ -1,26 +1,28 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-require('dotenv').config(); // Loads DATABASE_URL from .env
+const path = require('path');
+require('dotenv').config();
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
-
-const path = require('path');
-
-// Add these lines to serve static files like index.html
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Connect to PostgreSQL using Neon database connection string in .env
+// Connect to Neon PostgreSQL database using environment variable
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || '',
     ssl: { rejectUnauthorized: false }
 });
+
+// Serve frontend home page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ------------------- API ROUTES -------------------
 
 // 1. Fetch Master Metadata (Accounts & Categories for Dropdowns)
 app.get('/api/meta', async (req, res) => {
@@ -49,7 +51,7 @@ app.get('/api/balances', async (req, res) => {
     }
 });
 
-// 3. Get Recent Transactions Log (With Category Name)
+// 3. Get Recent Transactions Log
 app.get('/api/transactions/recent', async (req, res) => {
     try {
         const query = `
@@ -115,6 +117,7 @@ app.post('/api/transactions', async (req, res) => {
     }
 });
 
+// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
