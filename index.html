@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-bottom: 80px; font-family: system-ui, -apple-system, sans-serif; }
+        .card-balance { border-radius: 12px; border: none; }
+        .btn-touch { padding: 12px; font-size: 1.1rem; border-radius: 8px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; z-index: 1000; }
+        .nav-btn { color: #6c757d; text-decoration: none; font-weight: 600; }
+        .nav-btn.active { color: #0d6efd; }
+    </style>
+</head>
+<body>
+
+<div class="container py-3">
+
+    <!-- 1. ENTRY FORM VIEW (DEFAULT SCREEN) -->
+    <div id="view-entry">
+        <h5 class="fw-bold mb-3">New Transaction</h5>
+        
+        <form id="tx-form" class="card p-3 shadow-sm border-0 rounded-3">
+            
+            <!-- Type -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Transaction Type</label>
+                <select class="form-select form-select-lg" id="type" onchange="handleTypeChange()">
+                    <option value="EXPENSE">Expense (-)</option>
+                    <option value="INCOME">Income (+)</option>
+                    <option value="TRANSFER">Transfer</option>
+                </select>
+            </div>
+
+            <!-- Source Account -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" id="account-label">Account</label>
+                <select class="form-select form-select-lg" id="account" required>
+                    <option value="1">CANARA BANK (BANK)</option>
+                    <option value="2">GPay / UPI (UPI)</option>
+                    <option value="3">Cash Wallet (CASH)</option>
+                </select>
+            </div>
+
+            <!-- Target Account (Only for Transfers) -->
+            <div class="mb-3 d-none" id="destination-wrapper">
+                <label class="form-label fw-bold">Transfer To Account</label>
+                <select class="form-select form-select-lg" id="destination_account">
+                    <option value="1">CANARA BANK (BANK)</option>
+                    <option value="2">GPay / UPI (UPI)</option>
+                    <option value="3">Cash Wallet (CASH)</option>
+                </select>
+            </div>
+
+            <!-- Category Dropdown -->
+            <div class="mb-3" id="category-wrapper">
+                <label class="form-label fw-bold">Category</label>
+                <select class="form-select form-select-lg" id="category">
+                    <!-- Populated dynamically from database -->
+                </select>
+            </div>
+
+            <!-- Amount -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Amount (₹)</label>
+                <input type="number" step="0.01" class="form-control form-control-lg" id="amount" placeholder="0.00" required>
+            </div>
+
+            <!-- Date -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Date</label>
+                <input type="date" class="form-control" id="transaction_date" required>
+            </div>
+
+            <!-- Remarks -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Remarks / Note</label>
+                <input type="text" class="form-control" id="remarks" placeholder="e.g. Vegetables, Milk, Bill payment">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-touch w-100 fw-bold shadow-sm">Save Transaction</button>
+        </form>
+    </div>
+
+    <!-- 2. DASHBOARD VIEW -->
+    <div id="view-dashboard" class="d-none">
+        <h5 class="fw-bold mb-3">Accounts Overview</h5>
+        
+        <!-- Balance Cards -->
+        <div class="row g-2 mb-3">
+            <div class="col-4">
+                <div class="card card-balance bg-primary text-white text-center p-2">
+                    <small>Bank</small>
+                    <h6 class="fw-bold mb-0">₹<span id="bal-bank">0.00</span></h6>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-balance bg-success text-white text-center p-2">
+                    <small>UPI</small>
+                    <h6 class="fw-bold mb-0">₹<span id="bal-upi">0.00</span></h6>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-balance bg-warning text-dark text-center p-2">
+                    <small>Cash</small>
+                    <h6 class="fw-bold mb-0">₹<span id="bal-cash">0.00</span></h6>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+            <h6 class="fw-bold m-0">Recent Transactions</h6>
+            <button class="btn btn-sm btn-light border" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
+
+        <ul class="list-group list-group-flush shadow-sm rounded-3" id="recent-list">
+            <li class="list-group-item text-center text-muted py-3">Loading entries...</li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- BOTTOM NAVIGATION BAR -->
+<div class="bottom-nav d-flex justify-content-around py-2">
+    <button class="btn btn-link nav-btn active" id="nav-add" onclick="showScreen('entry')">＋ Add</button>
+    <button class="btn btn-link nav-btn" id="nav-dash" onclick="showScreen('dashboard')">📊 Dashboard</button>
+</div>
+
+<script>
+    const API_URL = 'http://192.168.0.78:3000/api'; // Use your actual IP address here
+
+    let masterAccounts = [];
+    let masterCategories = [
+        { category_id: 1, category_name: 'Salary', category_type: 'INCOME' },
+        { category_id: 2, category_name: 'Misc', category_type: 'INCOME' },
+        { category_id: 3, category_name: 'Groceries', category_type: 'EXPENSE' },
+        { category_id: 4, category_name: 'Dairy', category_type: 'EXPENSE' },
+        { category_id: 5, category_name: 'Electricity', category_type: 'EXPENSE' },
+        { category_id: 6, category_name: 'Medical & Health', category_type: 'EXPENSE' },
+        { category_id: 7, category_name: 'Skincare', category_type: 'EXPENSE' },
+        { category_id: 8, category_name: 'Travel', category_type: 'EXPENSE' },
+        { category_id: 9, category_name: 'Dining & Leisure', category_type: 'EXPENSE' }
+    ];
+
+    function showScreen(screen) {
+        if(screen === 'dashboard') {
+            document.getElementById('view-dashboard').classList.remove('d-none');
+            document.getElementById('view-entry').classList.add('d-none');
+            document.getElementById('nav-dash').classList.add('active');
+            document.getElementById('nav-add').classList.remove('active');
+            loadDashboard();
+        } else {
+            document.getElementById('view-dashboard').classList.add('d-none');
+            document.getElementById('view-entry').classList.remove('d-none');
+            document.getElementById('nav-add').classList.add('active');
+            document.getElementById('nav-dash').classList.remove('active');
+        }
+    }
+
+    async function initApp() {
+        document.getElementById('transaction_date').value = new Date().toISOString().split('T')[0];
+        filterCategories();
+        await loadMetadata();
+    }
+
+    async function loadMetadata() {
+        try {
+            const res = await fetch(`${API_URL}/meta`);
+            if(!res.ok) return;
+
+            const data = await res.json();
+            if(data.accounts && data.accounts.length > 0) {
+                masterAccounts = data.accounts;
+                populateAccounts();
+            }
+            if(data.categories && data.categories.length > 0) {
+                masterCategories = data.categories;
+                filterCategories();
+            }
+        } catch(err) {
+            console.warn('API connection pending, using default fallback masters.');
+        }
+    }
+
+    function populateAccounts() {
+        const accSelect = document.getElementById('account');
+        const destSelect = document.getElementById('destination_account');
+        accSelect.innerHTML = '';
+        destSelect.innerHTML = '';
+
+        masterAccounts.forEach(a => {
+            accSelect.innerHTML += `<option value="${a.account_id}">${a.account_name} (${a.account_type})</option>`;
+            destSelect.innerHTML += `<option value="${a.account_id}">${a.account_name} (${a.account_type})</option>`;
+        });
+    }
+
+    function handleTypeChange() {
+        const type = document.getElementById('type').value;
+        const destWrapper = document.getElementById('destination-wrapper');
+        const catWrapper = document.getElementById('category-wrapper');
+
+        if(type === 'TRANSFER') {
+            destWrapper.classList.remove('d-none');
+            catWrapper.classList.add('d-none');
+        } else {
+            destWrapper.classList.add('d-none');
+            catWrapper.classList.remove('d-none');
+            filterCategories();
+        }
+    }
+
+    function filterCategories() {
+        const currentType = document.getElementById('type').value;
+        const catSelect = document.getElementById('category');
+        catSelect.innerHTML = '<option value="">-- Select Category --</option>';
+
+        masterCategories
+            .filter(c => c.category_type === currentType)
+            .forEach(c => {
+                catSelect.innerHTML += `<option value="${c.category_id}">${c.category_name}</option>`;
+            });
+    }
+
+    async function loadDashboard() {
+        try {
+            const resBal = await fetch(`${API_URL}/balances`);
+            const balances = await resBal.json();
+
+            balances.forEach(acc => {
+                const bal = parseFloat(acc.current_balance || 0).toFixed(2);
+                if(acc.account_type === 'BANK') document.getElementById('bal-bank').innerText = bal;
+                if(acc.account_type === 'UPI') document.getElementById('bal-upi').innerText = bal;
+                if(acc.account_type === 'CASH') document.getElementById('bal-cash').innerText = bal;
+            });
+
+            const resTx = await fetch(`${API_URL}/transactions/recent`);
+            const transactions = await resTx.json();
+
+            const list = document.getElementById('recent-list');
+            list.innerHTML = '';
+
+            if(transactions.length === 0) {
+                list.innerHTML = `<li class="list-group-item text-center text-muted py-3">No transactions found</li>`;
+                return;
+            }
+
+            transactions.forEach(tx => {
+                const isIncome = tx.transaction_type === 'INCOME';
+                const color = isIncome ? 'text-success' : 'text-danger';
+                const sign = isIncome ? '+' : '-';
+
+                list.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${tx.remarks || tx.category_name || 'Transaction'}</strong>
+                            <small class="text-muted d-block">${tx.account_name}</small>
+                        </div>
+                        <span class="${color} fw-bold">${sign} ₹${parseFloat(tx.amount).toFixed(2)}</span>
+                    </li>
+                `;
+            });
+        } catch (err) {
+            console.error('Error fetching dashboard:', err);
+        }
+    }
+
+document.getElementById('tx-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const type = document.getElementById('type').value;
+    const payload = {
+        transaction_type: type,
+        transaction_date: document.getElementById('transaction_date').value,
+        account_id: parseInt(document.getElementById('account').value),
+        destination_account_id: type === 'TRANSFER' ? parseInt(document.getElementById('destination_account').value) : null,
+        category_id: type !== 'TRANSFER' && document.getElementById('category').value ? parseInt(document.getElementById('category').value) : null,
+        amount: parseFloat(document.getElementById('amount').value),
+        remarks: document.getElementById('remarks').value
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/transactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if(res.ok) {
+            // Silently reset inputs for next entry
+            document.getElementById('amount').value = '';
+            document.getElementById('remarks').value = '';
+            document.getElementById('amount').focus();
+        } else {
+            alert('Error saving transaction.');
+        }
+    } catch(err) {
+        console.error(err);
+        alert('Cannot connect to API server.');
+    }
+});
+    
+    initApp();
+</script>
+</body>
+</html>
