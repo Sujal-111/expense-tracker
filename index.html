@@ -19,7 +19,7 @@
 
 <div class="container py-3">
 
-    <!-- 1. ENTRY FORM VIEW (DEFAULT SCREEN) -->
+    <!-- 1. ENTRY FORM VIEW -->
     <div id="view-entry">
         <h5 class="fw-bold mb-3">New Transaction</h5>
         
@@ -59,7 +59,7 @@
             <div class="mb-3" id="category-wrapper">
                 <label class="form-label fw-bold">Category</label>
                 <select class="form-select form-select-lg" id="category">
-                    <!-- Populated dynamically from database -->
+                    <!-- Populated dynamically -->
                 </select>
             </div>
 
@@ -131,7 +131,6 @@
 </div>
 
 <script>
-    // Point this directly to your Render domain
     const API_URL = 'https://expense-tracker-api-2hcu.onrender.com';
 
     let masterAccounts = [];
@@ -183,7 +182,7 @@
                 filterCategories();
             }
         } catch(err) {
-            console.warn('API connection pending, using default fallback masters.');
+            console.warn('Using default fallback masters.');
         }
     }
 
@@ -291,7 +290,6 @@
             });
 
             if(res.ok) {
-                // Silently reset inputs for next entry
                 document.getElementById('amount').value = '';
                 document.getElementById('remarks').value = '';
                 document.getElementById('amount').focus();
