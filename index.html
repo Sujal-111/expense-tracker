@@ -37,23 +37,13 @@
             <!-- Source Account -->
             <div class="mb-3">
                 <label class="form-label fw-bold" id="account-label">Account</label>
-                <select class="form-select form-select-lg" id="account" required>
-                    <option value="1">CANARA BANK (BANK)</option>
-                    <option value="2">GPay / UPI (UPI)</option>
-                    <option value="3">Cash Wallet (CASH)</option>
-                    <option value="4">Friends Ledger (CASH)</option>
-                </select>
+                <select class="form-select form-select-lg" id="account" required></select>
             </div>
 
             <!-- Target Account (Only for Transfers) -->
             <div class="mb-3 d-none" id="destination-wrapper">
                 <label class="form-label fw-bold">Transfer To Account</label>
-                <select class="form-select form-select-lg" id="destination_account">
-                    <option value="1">CANARA BANK (BANK)</option>
-                    <option value="2">GPay / UPI (UPI)</option>
-                    <option value="3">Cash Wallet (CASH)</option>
-                    <option value="4">Friends Ledger (CASH)</option>
-                </select>
+                <select class="form-select form-select-lg" id="destination_account"></select>
             </div>
 
             <div class="mb-3" id="category-wrapper">
@@ -204,7 +194,8 @@
 
     async function initApp() {
         document.getElementById('transaction_date').value = new Date().toISOString().split('T')[0];
-        filterCategories();
+        populateAccounts();
+        handleTypeChange();
         await loadMetadata();
     }
 
@@ -407,11 +398,19 @@
         e.preventDefault();
 
         const type = document.getElementById('type').value;
+        const sourceAcc = parseInt(document.getElementById('account').value);
+        const destAcc = type === 'TRANSFER' ? parseInt(document.getElementById('destination_account').value) : null;
+
+        if (type === 'TRANSFER' && sourceAcc === destAcc) {
+            alert('Source and destination accounts cannot be the same!');
+            return;
+        }
+
         const payload = {
             transaction_type: type,
             transaction_date: document.getElementById('transaction_date').value,
-            account_id: parseInt(document.getElementById('account').value),
-            destination_account_id: type === 'TRANSFER' ? parseInt(document.getElementById('destination_account').value) : null,
+            account_id: sourceAcc,
+            destination_account_id: destAcc,
             category_id: type !== 'TRANSFER' && document.getElementById('category').value ? parseInt(document.getElementById('category').value) : null,
             amount: parseFloat(document.getElementById('amount').value),
             remarks: document.getElementById('remarks').value
@@ -433,7 +432,7 @@
                 alert('Error saving transaction.');
             }
         } catch(err) {
-            console.error(err);s
+            console.error(err);
             alert('Cannot connect to API server.');
         }
     });
