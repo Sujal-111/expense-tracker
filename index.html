@@ -6,12 +6,14 @@
     <title>Expense Tracker</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #f8f9fa; padding-bottom: 80px; font-family: system-ui, -apple-system, sans-serif; }
         .card-balance { border-radius: 12px; border: none; }
         .btn-touch { padding: 12px; font-size: 1.1rem; border-radius: 8px; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; z-index: 1000; }
-        .nav-btn { color: #6c757d; text-decoration: none; font-weight: 600; }
+        .nav-btn { color: #6c757d; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
         .nav-btn.active { color: #0d6efd; }
     </style>
 </head>
@@ -22,10 +24,7 @@
     <!-- 1. ENTRY FORM VIEW -->
     <div id="view-entry">
         <h5 class="fw-bold mb-3">New Transaction</h5>
-        
         <form id="tx-form" class="card p-3 shadow-sm border-0 rounded-3">
-            
-            <!-- Type -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Transaction Type</label>
                 <select class="form-select form-select-lg" id="type" onchange="handleTypeChange()">
@@ -42,6 +41,7 @@
                     <option value="1">CANARA BANK (BANK)</option>
                     <option value="2">GPay / UPI (UPI)</option>
                     <option value="3">Cash Wallet (CASH)</option>
+                    <option value="4">Friends Ledger (CASH)</option>
                 </select>
             </div>
 
@@ -52,33 +52,28 @@
                     <option value="1">CANARA BANK (BANK)</option>
                     <option value="2">GPay / UPI (UPI)</option>
                     <option value="3">Cash Wallet (CASH)</option>
+                    <option value="4">Friends Ledger (CASH)</option>
                 </select>
             </div>
 
-            <!-- Category Dropdown -->
             <div class="mb-3" id="category-wrapper">
                 <label class="form-label fw-bold">Category</label>
-                <select class="form-select form-select-lg" id="category">
-                    <!-- Populated dynamically -->
-                </select>
+                <select class="form-select form-select-lg" id="category"></select>
             </div>
 
-            <!-- Amount -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Amount (₹)</label>
                 <input type="number" step="0.01" class="form-control form-control-lg" id="amount" placeholder="0.00" required>
             </div>
 
-            <!-- Date -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Date</label>
                 <input type="date" class="form-control" id="transaction_date" required>
             </div>
 
-            <!-- Remarks -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Remarks / Note</label>
-                <input type="text" class="form-control" id="remarks" placeholder="e.g. Vegetables, Milk, Bill payment">
+                <input type="text" class="form-control" id="remarks" placeholder="e.g. Vegetables, Lent to Rahul, Bill payment">
             </div>
 
             <button type="submit" class="btn btn-primary btn-touch w-100 fw-bold shadow-sm">Save Transaction</button>
@@ -91,27 +86,32 @@
         
         <!-- Balance Cards -->
         <div class="row g-2 mb-3">
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card card-balance bg-primary text-white text-center p-2">
-                    <small>Bank</small>
-                    <h6 class="fw-bold mb-0">₹<span id="bal-bank">0.00</span></h6>
+                    <small style="font-size: 0.75rem;">Bank</small>
+                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-bank">0.00</span></h6>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card card-balance bg-success text-white text-center p-2">
-                    <small>UPI</small>
-                    <h6 class="fw-bold mb-0">₹<span id="bal-upi">0.00</span></h6>
+                    <small style="font-size: 0.75rem;">UPI</small>
+                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-upi">0.00</span></h6>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card card-balance bg-warning text-dark text-center p-2">
-                    <small>Cash</small>
-                    <h6 class="fw-bold mb-0">₹<span id="bal-cash">0.00</span></h6>
+                    <small style="font-size: 0.75rem;">Cash</small>
+                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-cash">0.00</span></h6>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card card-balance bg-info text-dark text-center p-2">
+                    <small style="font-size: 0.75rem;">Friends</small>
+                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-friends">0.00</span></h6>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Logs -->
         <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
             <h6 class="fw-bold m-0">Recent Transactions</h6>
             <button class="btn btn-sm btn-light border" onclick="loadDashboard()">🔄 Refresh</button>
@@ -122,18 +122,51 @@
         </ul>
     </div>
 
+    <!-- 3. REPORTS VIEW -->
+    <div id="view-reports" class="d-none">
+        <h5 class="fw-bold mb-3">Financial Summaries</h5>
+        
+        <!-- Filter Tabs -->
+        <div class="btn-group w-100 mb-3" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="btn-rep-monthly" onclick="loadReport('monthly')">Monthly</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-rep-quarterly" onclick="loadReport('quarterly')">Quarterly (FY)</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-rep-annual" onclick="loadReport('annual')">Annual (FY)</button>
+        </div>
+
+        <!-- Summary List -->
+        <div id="report-container">
+            <p class="text-center text-muted py-3">Select a report filter above.</p>
+        </div>
+
+        <!-- Category Expense Breakdown Chart -->
+        <div class="card border-0 shadow-sm rounded-3 mt-4 p-3">
+            <h6 class="fw-bold mb-3 text-center">Expense Category Breakdown</h6>
+            <div style="max-height: 300px;" class="d-flex justify-content-center">
+                <canvas id="expenseCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- BOTTOM NAVIGATION BAR -->
 <div class="bottom-nav d-flex justify-content-around py-2">
     <button class="btn btn-link nav-btn active" id="nav-add" onclick="showScreen('entry')">＋ Add</button>
     <button class="btn btn-link nav-btn" id="nav-dash" onclick="showScreen('dashboard')">📊 Dashboard</button>
+    <button class="btn btn-link nav-btn" id="nav-rep" onclick="showScreen('reports')">📈 Reports</button>
 </div>
 
 <script>
-    const API_URL = 'https://expense-tracker-api-2hcu.onrender.com';
+    const API_URL = 'http://localhost:3000';
+    let expenseChart = null;
 
-    let masterAccounts = [];
+    let masterAccounts = [
+        { account_id: 1, account_name: 'CANARA BANK', account_type: 'BANK' },
+        { account_id: 2, account_name: 'GPay / UPI', account_type: 'UPI' },
+        { account_id: 3, account_name: 'Cash Wallet', account_type: 'CASH' },
+        { account_id: 4, account_name: 'Friends Ledger', account_type: 'CASH' }
+    ];
+
     let masterCategories = [
         { category_id: 1, category_name: 'Salary', category_type: 'INCOME' },
         { category_id: 2, category_name: 'Misc', category_type: 'INCOME' },
@@ -147,17 +180,25 @@
     ];
 
     function showScreen(screen) {
+        document.getElementById('view-entry').classList.add('d-none');
+        document.getElementById('view-dashboard').classList.add('d-none');
+        document.getElementById('view-reports').classList.add('d-none');
+
+        document.getElementById('nav-add').classList.remove('active');
+        document.getElementById('nav-dash').classList.remove('active');
+        document.getElementById('nav-rep').classList.remove('active');
+
         if(screen === 'dashboard') {
             document.getElementById('view-dashboard').classList.remove('d-none');
-            document.getElementById('view-entry').classList.add('d-none');
             document.getElementById('nav-dash').classList.add('active');
-            document.getElementById('nav-add').classList.remove('active');
             loadDashboard();
+        } else if(screen === 'reports') {
+            document.getElementById('view-reports').classList.remove('d-none');
+            document.getElementById('nav-rep').classList.add('active');
+            loadReport('monthly');
         } else {
-            document.getElementById('view-dashboard').classList.add('d-none');
             document.getElementById('view-entry').classList.remove('d-none');
             document.getElementById('nav-add').classList.add('active');
-            document.getElementById('nav-dash').classList.remove('active');
         }
     }
 
@@ -232,9 +273,10 @@
 
             balances.forEach(acc => {
                 const bal = parseFloat(acc.current_balance || 0).toFixed(2);
-                if(acc.account_type === 'BANK') document.getElementById('bal-bank').innerText = bal;
-                if(acc.account_type === 'UPI') document.getElementById('bal-upi').innerText = bal;
-                if(acc.account_type === 'CASH') document.getElementById('bal-cash').innerText = bal;
+                if(acc.account_id === 1 || acc.account_type === 'BANK') document.getElementById('bal-bank').innerText = bal;
+                if(acc.account_id === 2 || acc.account_type === 'UPI') document.getElementById('bal-upi').innerText = bal;
+                if(acc.account_id === 3) document.getElementById('bal-cash').innerText = bal;
+                if(acc.account_id === 4 || acc.account_name === 'Friends Ledger') document.getElementById('bal-friends').innerText = bal;
             });
 
             const resTx = await fetch(`${API_URL}/api/transactions/recent`);
@@ -268,6 +310,99 @@
         }
     }
 
+    async function loadReport(type) {
+        document.getElementById('btn-rep-monthly').classList.remove('active');
+        document.getElementById('btn-rep-quarterly').classList.remove('active');
+        document.getElementById('btn-rep-annual').classList.remove('active');
+        document.getElementById(`btn-rep-${type}`).classList.add('active');
+
+        const container = document.getElementById('report-container');
+        container.innerHTML = `<p class="text-center text-muted py-3">Loading ${type} report...</p>`;
+
+        try {
+            const res = await fetch(`${API_URL}/api/reports/${type}`);
+            const data = await res.json();
+
+            if(!data || data.length === 0) {
+                container.innerHTML = `<p class="text-center text-muted py-3">No financial data available for this report.</p>`;
+            } else {
+                let html = `<div class="card border-0 shadow-sm rounded-3"><ul class="list-group list-group-flush">`;
+
+                data.forEach(item => {
+                    let title = item.month_label || item.quarter_label || item.financial_year;
+                    if(item.quarter_label && item.fy_start_year) {
+                        title = `${item.quarter_label} (FY ${item.fy_start_year}-${(parseInt(item.fy_start_year)+1).toString().slice(-2)})`;
+                    }
+
+                    const income = parseFloat(item.total_income || 0).toFixed(2);
+                    const expense = parseFloat(item.total_expense || 0).toFixed(2);
+                    const savings = parseFloat(item.net_savings || 0).toFixed(2);
+                    const savingsColor = item.net_savings >= 0 ? 'text-success' : 'text-danger';
+
+                    html += `
+                        <li class="list-group-item p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="fw-bold mb-0">${title}</h6>
+                                <span class="${savingsColor} fw-bold">Savings: ₹${savings}</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span>Income: <strong class="text-success">₹${income}</strong></span>
+                                <span>Expense: <strong class="text-danger">₹${expense}</strong></span>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += `</ul></div>`;
+                container.innerHTML = html;
+            }
+
+            await renderExpenseChart();
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p class="text-center text-danger py-3">Failed to load report.</p>`;
+        }
+    }
+
+    async function renderExpenseChart() {
+        try {
+            const res = await fetch(`${API_URL}/api/reports/categories`);
+            const categoryData = await res.json();
+
+            const labels = categoryData.map(c => c.category_name);
+            const amounts = categoryData.map(c => parseFloat(c.total_amount));
+
+            const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
+
+            if(expenseChart) {
+                expenseChart.destroy();
+            }
+
+            expenseChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: amounts,
+                        backgroundColor: [
+                            '#ff6384', '#36a2eb', '#cc65fe', '#ffce56', 
+                            '#4bc0c0', '#f77eb9', '#9966ff', '#ff9f40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Error rendering expense chart:', err);
+        }
+    }
+
     document.getElementById('tx-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -293,11 +428,12 @@
                 document.getElementById('amount').value = '';
                 document.getElementById('remarks').value = '';
                 document.getElementById('amount').focus();
+                alert('Transaction saved successfully!');
             } else {
                 alert('Error saving transaction.');
             }
         } catch(err) {
-            console.error(err);
+            console.error(err);s
             alert('Cannot connect to API server.');
         }
     });
