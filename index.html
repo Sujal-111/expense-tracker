@@ -147,7 +147,11 @@
 </div>
 
 <script>
-    const API_URL = 'http://localhost:3000';
+    // DYNAMIC BACKEND API DETECTOR (Locally uses localhost, Deployed uses Render)
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3000'
+        : 'https://expense-tracker-api-2hcu.onrender.com';
+
     let expenseChart = null;
 
     let masterAccounts = [
@@ -283,14 +287,28 @@
 
             transactions.forEach(tx => {
                 const isIncome = tx.transaction_type === 'INCOME';
-                const color = isIncome ? 'text-success' : 'text-danger';
-                const sign = isIncome ? '+' : '-';
+                const isTransfer = tx.transaction_type === 'TRANSFER';
+                
+                let color = 'text-danger';
+                let sign = '-';
+                if (isIncome) {
+                    color = 'text-success';
+                    sign = '+';
+                } else if (isTransfer) {
+                    color = 'text-primary';
+                    sign = '⇄';
+                }
+
+                let subText = tx.account_name;
+                if (isTransfer && tx.destination_account_name) {
+                    subText = `${tx.account_name} ➔ ${tx.destination_account_name}`;
+                }
 
                 list.innerHTML += `
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            <strong>${tx.remarks || tx.category_name || 'Transaction'}</strong>
-                            <small class="text-muted d-block">${tx.account_name}</small>
+                            <strong>${tx.remarks || tx.category_name || (isTransfer ? 'Transfer' : 'Transaction')}</strong>
+                            <small class="text-muted d-block">${subText}</small>
                         </div>
                         <span class="${color} fw-bold">${sign} ₹${parseFloat(tx.amount).toFixed(2)}</span>
                     </li>
