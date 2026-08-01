@@ -6,121 +6,237 @@
     <title>Expense Tracker</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #f8f9fa; padding-bottom: 80px; font-family: system-ui, -apple-system, sans-serif; }
-        .card-balance { border-radius: 12px; border: none; }
-        .btn-touch { padding: 12px; font-size: 1.1rem; border-radius: 8px; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; z-index: 1000; }
-        .nav-btn { color: #6c757d; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
-        .nav-btn.active { color: #0d6efd; }
+        :root {
+            --bg-canvas: #f4f6f9;
+            --card-radius: 16px;
+            --primary-accent: #3b82f6;
+        }
+
+        body { 
+            background-color: var(--bg-canvas); 
+            padding-bottom: 90px; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            color: #1e293b;
+        }
+
+        /* Glass / Card Styling */
+        .card-custom {
+            background: #ffffff;
+            border-radius: var(--card-radius);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        /* Dashboard Balance Cards */
+        .balance-card {
+            border-radius: 14px;
+            padding: 14px 16px;
+            border: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .balance-card .acc-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .balance-card .acc-val {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Balance Variants */
+        .card-bank { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #1e40af; }
+        .card-upi { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); color: #166534; }
+        .card-cash { background: linear-gradient(135deg, #fefce8 0%, #fef08a 100%); color: #854d0e; }
+        .card-friends { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); color: #5b21b6; }
+
+        /* Form Inputs */
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-touch { 
+            padding: 12px; 
+            font-size: 1rem; 
+            border-radius: 10px; 
+            background-color: var(--primary-accent);
+            border: none;
+        }
+        .btn-touch:hover {
+            background-color: #2563eb;
+        }
+
+        /* Bottom Floating Bar */
+        .bottom-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #e2e8f0; 
+            z-index: 1000; 
+        }
+        .nav-btn { 
+            color: #64748b; 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 0;
+            border: none;
+            background: none;
+        }
+        .nav-btn.active { 
+            color: var(--primary-accent); 
+            font-weight: 700; 
+        }
+
+        /* Transaction List Styling */
+        .tx-icon-pill {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .bg-income-pill { background: #dcfce7; color: #15803d; }
+        .bg-expense-pill { background: #fee2e2; color: #b91c1c; }
+        .bg-transfer-pill { background: #e0f2fe; color: #0369a1; }
     </style>
 </head>
 <body>
 
-<div class="container py-3">
+<div class="container py-3 max-w-md" style="max-width: 540px;">
 
     <!-- 1. ENTRY FORM VIEW -->
     <div id="view-entry">
-        <h5 class="fw-bold mb-3">New Transaction</h5>
-        <form id="tx-form" class="card p-3 shadow-sm border-0 rounded-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0">New Transaction</h5>
+            <span class="badge bg-light text-secondary border fw-normal">Quick Entry</span>
+        </div>
+
+        <form id="tx-form" class="card-custom p-3">
             <div class="mb-3">
-                <label class="form-label fw-bold">Transaction Type</label>
-                <select class="form-select form-select-lg" id="type" onchange="handleTypeChange()">
+                <label class="form-label fw-bold small text-muted">TYPE</label>
+                <select class="form-select" id="type" onchange="handleTypeChange()">
                     <option value="EXPENSE">Expense (-)</option>
                     <option value="INCOME">Income (+)</option>
-                    <option value="TRANSFER">Transfer</option>
+                    <option value="TRANSFER">Transfer (⇄)</option>
                 </select>
             </div>
 
             <!-- Source Account -->
             <div class="mb-3">
-                <label class="form-label fw-bold" id="account-label">Account</label>
-                <select class="form-select form-select-lg" id="account" required></select>
+                <label class="form-label fw-bold small text-muted" id="account-label">ACCOUNT</label>
+                <select class="form-select" id="account" required></select>
             </div>
 
             <!-- Target Account (Only for Transfers) -->
             <div class="mb-3 d-none" id="destination-wrapper">
-                <label class="form-label fw-bold">Transfer To Account</label>
-                <select class="form-select form-select-lg" id="destination_account"></select>
+                <label class="form-label fw-bold small text-muted">TRANSFER TO ACCOUNT</label>
+                <select class="form-select" id="destination_account"></select>
             </div>
 
             <div class="mb-3" id="category-wrapper">
-                <label class="form-label fw-bold">Category</label>
-                <select class="form-select form-select-lg" id="category"></select>
+                <label class="form-label fw-bold small text-muted">CATEGORY</label>
+                <select class="form-select" id="category"></select>
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold">Amount (₹)</label>
-                <input type="number" step="0.01" class="form-control form-control-lg" id="amount" placeholder="0.00" required>
+                <label class="form-label fw-bold small text-muted">AMOUNT (₹)</label>
+                <input type="number" step="0.01" class="form-control form-control-lg fw-bold" id="amount" placeholder="0.00" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold">Date</label>
+                <label class="form-label fw-bold small text-muted">DATE</label>
                 <input type="date" class="form-control" id="transaction_date" required>
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-bold">Remarks / Note</label>
-                <input type="text" class="form-control" id="remarks" placeholder="e.g. Vegetables, Lent to Rahul, Bill payment">
+                <label class="form-label fw-bold small text-muted">REMARKS / NOTE</label>
+                <input type="text" class="form-control" id="remarks" placeholder="e.g. Lent to Rahul, Groceries, Electricity">
             </div>
 
-            <button type="submit" class="btn btn-primary btn-touch w-100 fw-bold shadow-sm">Save Transaction</button>
+            <button type="submit" class="btn btn-primary btn-touch w-100 fw-bold text-white shadow-sm mt-2">Save Transaction</button>
         </form>
     </div>
 
     <!-- 2. DASHBOARD VIEW -->
     <div id="view-dashboard" class="d-none">
-        <h5 class="fw-bold mb-3">Accounts Overview</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0">Accounts Overview</h5>
+            <button class="btn btn-sm btn-white border shadow-sm px-2 py-1" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
         
-        <!-- Balance Cards -->
-        <div class="row g-2 mb-3">
-            <div class="col-3">
-                <div class="card card-balance bg-primary text-white text-center p-2">
-                    <small style="font-size: 0.75rem;">Bank</small>
-                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-bank">0.00</span></h6>
+        <!-- Balance Cards Grid (2x2) -->
+        <div class="row g-2 mb-4">
+            <div class="col-6">
+                <div class="balance-card card-bank">
+                    <span class="acc-title">Bank Account</span>
+                    <span class="acc-val">₹<span id="bal-bank">0.00</span></span>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card card-balance bg-success text-white text-center p-2">
-                    <small style="font-size: 0.75rem;">UPI</small>
-                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-upi">0.00</span></h6>
+            <div class="col-6">
+                <div class="balance-card card-upi">
+                    <span class="acc-title">GPay / UPI</span>
+                    <span class="acc-val">₹<span id="bal-upi">0.00</span></span>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card card-balance bg-warning text-dark text-center p-2">
-                    <small style="font-size: 0.75rem;">Cash</small>
-                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-cash">0.00</span></h6>
+            <div class="col-6">
+                <div class="balance-card card-cash">
+                    <span class="acc-title">Cash Wallet</span>
+                    <span class="acc-val">₹<span id="bal-cash">0.00</span></span>
                 </div>
             </div>
-            <div class="col-3">
-                <div class="card card-balance bg-info text-dark text-center p-2">
-                    <small style="font-size: 0.75rem;">Friends</small>
-                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">₹<span id="bal-friends">0.00</span></h6>
+            <div class="col-6">
+                <div class="balance-card card-friends">
+                    <span class="acc-title">Friends Ledger</span>
+                    <span class="acc-val">₹<span id="bal-friends">0.00</span></span>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
-            <h6 class="fw-bold m-0">Recent Transactions</h6>
-            <button class="btn btn-sm btn-light border" onclick="loadDashboard()">🔄 Refresh</button>
-        </div>
+        <h6 class="fw-bold mb-2">Recent Activity</h6>
 
-        <ul class="list-group list-group-flush shadow-sm rounded-3" id="recent-list">
-            <li class="list-group-item text-center text-muted py-3">Loading entries...</li>
-        </ul>
+        <div class="card-custom overflow-hidden">
+            <ul class="list-group list-group-flush" id="recent-list">
+                <li class="list-group-item text-center text-muted py-3">Loading entries...</li>
+            </ul>
+        </div>
     </div>
 
     <!-- 3. REPORTS VIEW -->
     <div id="view-reports" class="d-none">
-        <h5 class="fw-bold mb-3">Financial Summaries</h5>
+        <h5 class="fw-bold mb-3">Financial Analytics</h5>
         
         <!-- Filter Tabs -->
-        <div class="btn-group w-100 mb-3" role="group">
-            <button type="button" class="btn btn-outline-primary active" id="btn-rep-monthly" onclick="loadReport('monthly')">Monthly</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-rep-quarterly" onclick="loadReport('quarterly')">Quarterly (FY)</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-rep-annual" onclick="loadReport('annual')">Annual (FY)</button>
+        <div class="btn-group w-100 mb-3 shadow-sm" role="group">
+            <button type="button" class="btn btn-outline-primary active py-2" id="btn-rep-monthly" onclick="loadReport('monthly')">Monthly</button>
+            <button type="button" class="btn btn-outline-primary py-2" id="btn-rep-quarterly" onclick="loadReport('quarterly')">Quarterly</button>
+            <button type="button" class="btn btn-outline-primary py-2" id="btn-rep-annual" onclick="loadReport('annual')">Annual</button>
         </div>
 
         <!-- Summary List -->
@@ -129,9 +245,9 @@
         </div>
 
         <!-- Category Expense Breakdown Chart -->
-        <div class="card border-0 shadow-sm rounded-3 mt-4 p-3">
+        <div class="card-custom mt-4 p-3">
             <h6 class="fw-bold mb-3 text-center">Expense Category Breakdown</h6>
-            <div style="max-height: 300px;" class="d-flex justify-content-center">
+            <div style="max-height: 260px;" class="d-flex justify-content-center">
                 <canvas id="expenseCategoryChart"></canvas>
             </div>
         </div>
@@ -141,13 +257,22 @@
 
 <!-- BOTTOM NAVIGATION BAR -->
 <div class="bottom-nav d-flex justify-content-around py-2">
-    <button class="btn btn-link nav-btn active" id="nav-add" onclick="showScreen('entry')">＋ Add</button>
-    <button class="btn btn-link nav-btn" id="nav-dash" onclick="showScreen('dashboard')">📊 Dashboard</button>
-    <button class="btn btn-link nav-btn" id="nav-rep" onclick="showScreen('reports')">📈 Reports</button>
+    <button class="nav-btn active" id="nav-add" onclick="showScreen('entry')">
+        <span style="font-size: 1.1rem;">＋</span>
+        <span>Add</span>
+    </button>
+    <button class="nav-btn" id="nav-dash" onclick="showScreen('dashboard')">
+        <span style="font-size: 1.1rem;">📊</span>
+        <span>Dashboard</span>
+    </button>
+    <button class="nav-btn" id="nav-rep" onclick="showScreen('reports')">
+        <span style="font-size: 1.1rem;">📈</span>
+        <span>Reports</span>
+    </button>
 </div>
 
 <script>
-    // DYNAMIC BACKEND API DETECTOR (Locally uses localhost, Deployed uses Render)
+    // Dynamic API URL for deployed vs local environment
     const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:3000'
         : 'https://expense-tracker-api-2hcu.onrender.com';
@@ -281,22 +406,29 @@
             list.innerHTML = '';
 
             if(!transactions || transactions.length === 0) {
-                list.innerHTML = `<li class="list-group-item text-center text-muted py-3">No transactions found</li>`;
+                list.innerHTML = `<li class="list-group-item text-center text-muted py-3">No recent transactions</li>`;
                 return;
             }
 
             transactions.forEach(tx => {
                 const isIncome = tx.transaction_type === 'INCOME';
                 const isTransfer = tx.transaction_type === 'TRANSFER';
-                
-                let color = 'text-danger';
-                let sign = '-';
+
+                let pillClass = 'bg-expense-pill';
+                let symbol = '-';
+                let amountColor = 'text-danger';
+                let pillIcon = '↓';
+
                 if (isIncome) {
-                    color = 'text-success';
-                    sign = '+';
+                    pillClass = 'bg-income-pill';
+                    symbol = '+';
+                    amountColor = 'text-success';
+                    pillIcon = '↑';
                 } else if (isTransfer) {
-                    color = 'text-primary';
-                    sign = '⇄';
+                    pillClass = 'bg-transfer-pill';
+                    symbol = '⇄';
+                    amountColor = 'text-primary';
+                    pillIcon = '⇄';
                 }
 
                 let subText = tx.account_name;
@@ -305,12 +437,19 @@
                 }
 
                 list.innerHTML += `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${tx.remarks || tx.category_name || (isTransfer ? 'Transfer' : 'Transaction')}</strong>
-                            <small class="text-muted d-block">${subText}</small>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="tx-icon-pill ${pillClass}">${pillIcon}</div>
+                            <div>
+                                <strong class="d-block text-dark" style="font-size:0.95rem;">
+                                    ${tx.remarks || tx.category_name || (isTransfer ? 'Transfer' : 'Transaction')}
+                                </strong>
+                                <small class="text-muted d-block" style="font-size: 0.78rem;">${subText}</small>
+                            </div>
                         </div>
-                        <span class="${color} fw-bold">${sign} ₹${parseFloat(tx.amount).toFixed(2)}</span>
+                        <span class="${amountColor} fw-bold" style="font-size: 0.95rem;">
+                            ${symbol} ₹${parseFloat(tx.amount).toFixed(2)}
+                        </span>
                     </li>
                 `;
             });
@@ -335,7 +474,7 @@
             if(!data || data.length === 0) {
                 container.innerHTML = `<p class="text-center text-muted py-3">No financial data available for this report.</p>`;
             } else {
-                let html = `<div class="card border-0 shadow-sm rounded-3"><ul class="list-group list-group-flush">`;
+                let html = `<div class="card-custom overflow-hidden"><ul class="list-group list-group-flush">`;
 
                 data.forEach(item => {
                     let title = item.month_label || item.quarter_label || item.financial_year;
@@ -389,14 +528,14 @@
             }
 
             expenseChart = new Chart(ctx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: amounts,
                         backgroundColor: [
-                            '#ff6384', '#36a2eb', '#cc65fe', '#ffce56', 
-                            '#4bc0c0', '#f77eb9', '#9966ff', '#ff9f40'
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
+                            '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'
                         ]
                     }]
                 },
